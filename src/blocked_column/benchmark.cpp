@@ -78,9 +78,9 @@ static void blocked_column_aligned_mmul_bench(benchmark::State &s) {
   free(C);
 }
 BENCHMARK(blocked_column_aligned_mmul_bench)
-    ->Arg(384)
-    ->Arg(768)
-    ->Arg(1152)
+    ->Arg(2*std::thread::hardware_concurrency()*16)
+    ->Arg(4*std::thread::hardware_concurrency()*16)
+    ->Arg(6*std::thread::hardware_concurrency()*16)
     ->Unit(benchmark::kMillisecond);
 
 // Parallel MMul benchmark
@@ -137,9 +137,9 @@ static void parallel_blocked_column_mmul_bench(benchmark::State &s) {
   free(C);
 }
 BENCHMARK(parallel_blocked_column_mmul_bench)
-    ->Arg(384)
-    ->Arg(768)
-    ->Arg(1152)
+    ->Arg(2*std::thread::hardware_concurrency()*16)
+    ->Arg(4*std::thread::hardware_concurrency()*16)
+    ->Arg(6*std::thread::hardware_concurrency()*16)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
