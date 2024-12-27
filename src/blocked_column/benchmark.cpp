@@ -8,6 +8,9 @@
 #include <random>
 #include <thread>
 #include <vector>
+#include <iostream>
+
+unsigned int numThreads = std::thread::hardware_concurrency();
 
 // Blocked column serial implementation
 void blocked_column_mmul(const float *A, const float *B, float *C,
@@ -78,9 +81,9 @@ static void blocked_column_aligned_mmul_bench(benchmark::State &s) {
   free(C);
 }
 BENCHMARK(blocked_column_aligned_mmul_bench)
-    ->Arg(2*std::thread::hardware_concurrency()*16)
-    ->Arg(4*std::thread::hardware_concurrency()*16)
-    ->Arg(6*std::thread::hardware_concurrency()*16)
+    ->Arg(2*numThreads*16)
+    ->Arg(4*numThreads*16)
+    ->Arg(6*numThreads*16)
     ->Unit(benchmark::kMillisecond);
 
 // Parallel MMul benchmark
@@ -104,7 +107,7 @@ static void parallel_blocked_column_mmul_bench(benchmark::State &s) {
   std::generate(C, C + N * N, [&] { return 0.0f; });
 
   // Set up for launching threads
-  std::size_t num_threads = std::thread::hardware_concurrency();
+  std::size_t num_threads = numThreads;
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
@@ -137,10 +140,33 @@ static void parallel_blocked_column_mmul_bench(benchmark::State &s) {
   free(C);
 }
 BENCHMARK(parallel_blocked_column_mmul_bench)
-    ->Arg(2*std::thread::hardware_concurrency()*16)
-    ->Arg(4*std::thread::hardware_concurrency()*16)
-    ->Arg(6*std::thread::hardware_concurrency()*16)
+    ->Arg(2*16 * numThreads) // Not good always 16
+    ->Arg(4*16 * numThreads)
+    ->Arg(6*16 * numThreads)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    // Separate user arguments and benchmark arguments
+    std::vector<char*> benchmark_args;
+    for (int i = 0; i < argc; ++i) {
+        if (std::string(argv[i]).find("--") == 0 || i == 0) {
+            // Keep benchmark-specific arguments (starting with '--') and the program name
+            benchmark_args.push_back(argv[i]);
+        } else {
+            // Custom user arguments
+          numThreads = std::min(static_cast<unsigned int>(std::stoi(argv[i])), std::thread::hardware_concurrency());
+          std::cout << numThreads << std::endl;
+        }
+    }
+    // Pass filtered arguments to Google Benchmark
+    int benchmark_argc = static_cast<int>(benchmark_args.size());
+    char** benchmark_argv = benchmark_args.data();
+
+    benchmark::Initialize(&benchmark_argc, benchmark_argv);
+    if (benchmark::ReportUnrecognizedArguments(benchmark_argc, benchmark_argv)) return 1;
+    benchmark::RunSpecifiedBenchmarks();
+    return 0;
+}
+
+// BENCHMARK_MAIN();

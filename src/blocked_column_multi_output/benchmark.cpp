@@ -8,6 +8,8 @@
 #include <thread>
 #include <vector>
 
+unsigned int numThreads = std::thread::hardware_concurrency();
+
 // Blocked column multi-output serial implementation
 void blocked_column_multi_output_mmul(const float *A, const float *B, float *C,
                                       std::size_t N) {
@@ -52,6 +54,26 @@ void blocked_column_multi_output_parallel_mmul(const float *A, const float *B,
                   B[tile * N + tile_row * N + col_chunk + idx];
 }
 
+void blocked_column_parallel_atomic_gemm(const double *A, const double *B,
+                                          double *C, std::size_t N,
+                                          std::atomic<uint64_t> &pos) {
+   for (auto col_chunk = pos.fetch_add(16); col_chunk < N;
+        col_chunk = pos.fetch_add(16))
+     // For each row in that chunk of columns...
+     for (std::size_t row = 0; row < N; row++)
+       // For each block of elements in this row of this column chunk
+       // Solve for 16 elements at a time
+       for (std::size_t tile = 0; tile < N; tile += 16)
+         // For each row in the tile
+         for (std::size_t tile_row = 0; tile_row < 16; tile_row++)
+           // Solve for each element in this tile row
+           for (std::size_t idx = 0; idx < 16; idx++)
+             C[row * N + col_chunk + idx] +=
+                 A[row * N + tile + tile_row] *
+                 B[tile * N + tile_row * N + col_chunk + idx];
+ }
+
+
 // Blocked column multi-output MMul with aligned memory benchmark
 static void blocked_column_multi_output_aligned_mmul_bench(
     benchmark::State &s) {
@@ -84,9 +106,9 @@ static void blocked_column_multi_output_aligned_mmul_bench(
   free(C);
 }
 BENCHMARK(blocked_column_multi_output_aligned_mmul_bench)
-    ->Arg(384)
-    ->Arg(768)
-    ->Arg(1152)
+    ->Arg(2*numThreads*16)
+    ->Arg(4*numThreads*16)
+    ->Arg(6*numThreads*16)
     ->Unit(benchmark::kMillisecond);
 
 // Parallel blocked column multi-output MMul benchmark
@@ -111,7 +133,7 @@ static void parallel_blocked_column_multi_output_mmul_bench(
   std::generate(C, C + N * N, [&] { return 0.0f; });
 
   // Set up for launching threads
-  std::size_t num_threads = std::thread::hardware_concurrency();
+  std::size_t num_threads = numThreads;
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
@@ -145,10 +167,30 @@ static void parallel_blocked_column_multi_output_mmul_bench(
   free(C);
 }
 BENCHMARK(parallel_blocked_column_multi_output_mmul_bench)
-    ->Arg(384)
-    ->Arg(768)
-    ->Arg(1152)
+    ->Arg(2*numThreads*16)
+    ->Arg(4*numThreads*16)
+    ->Arg(6*numThreads*16)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    // Separate user arguments and benchmark arguments
+    std::vector<char*> benchmark_args;
+    for (int i = 0; i < argc; ++i) {
+        if (std::string(argv[i]).find("--") == 0 || i == 0) {
+            // Keep benchmark-specific arguments (starting with '--') and the program name
+            benchmark_args.push_back(argv[i]);
+        } else {
+            // Custom user arguments
+          numThreads = std::min(static_cast<unsigned int>(std::stoi(argv[i])), std::thread::hardware_concurrency());
+        }
+    }
+    // Pass filtered arguments to Google Benchmark
+    int benchmark_argc = static_cast<int>(benchmark_args.size());
+    char** benchmark_argv = benchmark_args.data();
+
+    benchmark::Initialize(&benchmark_argc, benchmark_argv);
+    if (benchmark::ReportUnrecognizedArguments(benchmark_argc, benchmark_argv)) return 1;
+    benchmark::RunSpecifiedBenchmarks();
+    return 0;
+}

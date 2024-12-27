@@ -9,6 +9,8 @@
 #include <thread>
 #include <vector>
 
+unsigned int numThreads = std::thread::hardware_concurrency();
+
 // Serial implementation
 void serial_mmul(const float *A, const float *B, float *C, std::size_t N) {
   // For each row...
@@ -91,7 +93,7 @@ static void parallel_mmul_bench(benchmark::State &s) {
   std::generate(C, C + N * N, [&] { return 0.0f; });
 
   // Set up for launching threads
-  std::size_t num_threads = std::thread::hardware_concurrency();
+  std::size_t num_threads = numThreads;
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
@@ -129,4 +131,24 @@ BENCHMARK(parallel_mmul_bench)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    // Separate user arguments and benchmark arguments
+    std::vector<char*> benchmark_args;
+    for (int i = 0; i < argc; ++i) {
+        if (std::string(argv[i]).find("--") == 0 || i == 0) {
+            // Keep benchmark-specific arguments (starting with '--') and the program name
+            benchmark_args.push_back(argv[i]);
+        } else {
+            // Custom user arguments
+          numThreads = std::min(static_cast<unsigned int>(std::stoi(argv[i])), std::thread::hardware_concurrency());
+        }
+    }
+    // Pass filtered arguments to Google Benchmark
+    int benchmark_argc = static_cast<int>(benchmark_args.size());
+    char** benchmark_argv = benchmark_args.data();
+
+    benchmark::Initialize(&benchmark_argc, benchmark_argv);
+    if (benchmark::ReportUnrecognizedArguments(benchmark_argc, benchmark_argv)) return 1;
+    benchmark::RunSpecifiedBenchmarks();
+    return 0;
+}

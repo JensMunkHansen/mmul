@@ -2,9 +2,12 @@
 
 #include <algorithm>
 #include <random>
+#include <thread>
 
 #include "benchmark/benchmark.h"
-#include "mkl/mkl.h"
+#include "mkl.h"
+
+unsigned int numThreads = std::thread::hardware_concurrency();
 
 // Blocked MMul benchmark
 static void blocked_mmul_bench(benchmark::State &s) {
@@ -42,9 +45,29 @@ static void blocked_mmul_bench(benchmark::State &s) {
   mkl_free(C);
 }
 BENCHMARK(blocked_mmul_bench)
-    ->Arg(384)
-    ->Arg(768)
-    ->Arg(1152)
+    ->Arg(2*numThreads*16)
+    ->Arg(4*numThreads*16)
+    ->Arg(6*numThreads*16)
     ->Unit(benchmark::kMillisecond);
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    // Separate user arguments and benchmark arguments
+    std::vector<char*> benchmark_args;
+    for (int i = 0; i < argc; ++i) {
+        if (std::string(argv[i]).find("--") == 0 || i == 0) {
+            // Keep benchmark-specific arguments (starting with '--') and the program name
+            benchmark_args.push_back(argv[i]);
+        } else {
+            // Custom user arguments
+          numThreads = std::min(static_cast<unsigned int>(std::stoi(argv[i])), std::thread::hardware_concurrency());
+        }
+    }
+    // Pass filtered arguments to Google Benchmark
+    int benchmark_argc = static_cast<int>(benchmark_args.size());
+    char** benchmark_argv = benchmark_args.data();
+
+    benchmark::Initialize(&benchmark_argc, benchmark_argv);
+    if (benchmark::ReportUnrecognizedArguments(benchmark_argc, benchmark_argv)) return 1;
+    benchmark::RunSpecifiedBenchmarks();
+    return 0;
+}
