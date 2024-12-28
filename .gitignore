@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+/**/mul_bench
+/**/mmul_bench
+*~
+/**/build

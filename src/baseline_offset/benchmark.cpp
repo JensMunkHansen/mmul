@@ -67,9 +67,9 @@ static void serial_mmul_bench(benchmark::State &s) {
   delete[] C;
 }
 BENCHMARK(serial_mmul_bench)
-->Arg(2*16*numThreads)
-->Arg(4*16*numThreads)
-->Arg(6*16*numThreads)
+->Arg(2*16*numThreads+16)
+->Arg(4*16*numThreads+16)
+->Arg(6*16*numThreads+16)
     ->Unit(benchmark::kMillisecond);
 
 // Parallel MMul benchmark
@@ -125,9 +125,9 @@ static void parallel_mmul_bench(benchmark::State &s) {
   free(C);
 }
 BENCHMARK(parallel_mmul_bench)
-->Arg(2*16*numThreads)
-->Arg(4*16*numThreads)
-->Arg(6*16*numThreads)
+->Arg(2*16*numThreads+16)
+->Arg(4*16*numThreads+16)
+->Arg(6*16*numThreads+16)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
