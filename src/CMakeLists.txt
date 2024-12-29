@@ -13,6 +13,6 @@ include(spsEmscriptenSettings)
 include(spsHardware)
 
 add_subdirectory(baseline)
-add_subdirectory(baseline_offset)
+add_subdirectory(baseline_nonpower)
 add_subdirectory(blocked)
 add_subdirectory(blocked_column)

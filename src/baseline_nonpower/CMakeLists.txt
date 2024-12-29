@@ -1,4 +1,4 @@
-set(TARGET_NAME baseline_offset)
+set(TARGET_NAME baseline_nonpower)
 
 sps_get_processor_count(MAX_CONCURRENCY)
 
