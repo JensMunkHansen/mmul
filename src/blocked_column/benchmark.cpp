@@ -86,6 +86,43 @@ BENCHMARK(blocked_column_aligned_mmul_bench)
     ->Arg(6*numThreads*16)
     ->Unit(benchmark::kMillisecond);
 
+// Blocked column MMul with aligned memory benchmark
+static void blocked_column_mmul_bench(benchmark::State &s) {
+  // Number Dimensions of our matrix
+  std::size_t N = s.range(0);
+
+  // Create our random number generators
+  std::mt19937 rng;
+  rng.seed(std::random_device()());
+  std::uniform_real_distribution<float> dist(-10, 10);
+
+  // Create input matrices
+  float *A = static_cast<float *>(malloc(N * N * sizeof(float)));
+  float *B = static_cast<float *>(malloc(N * N * sizeof(float)));
+  float *C = static_cast<float *>(malloc(N * N * sizeof(float)));
+
+  // Initialize them with random values (and C to 0)
+  std::generate(A, A + N * N, [&] { return dist(rng); });
+  std::generate(B, B + N * N, [&] { return dist(rng); });
+  std::generate(C, C + N * N, [&] { return 0.0f; });
+
+  // Main benchmark loop
+  for (auto _ : s) {
+    blocked_column_mmul(A, B, C, N);
+  }
+
+  // Free memory
+  free(A);
+  free(B);
+  free(C);
+}
+BENCHMARK(blocked_column_mmul_bench)
+    ->Arg(2*numThreads*16)
+    ->Arg(4*numThreads*16)
+    ->Arg(6*numThreads*16)
+    ->Unit(benchmark::kMillisecond);
+
+
 // Parallel MMul benchmark
 static void parallel_blocked_column_mmul_bench(benchmark::State &s) {
   // Number Dimensions of our matrix
