@@ -67,10 +67,10 @@ Benchmark                                Time             CPU   Iterations
 --------------------------------------------------------------------------
 blocked_aligned_mmul_bench/512       0.316 ms        0.316 ms         2329
 blocked_aligned_mmul_bench/1024       2.45 ms         2.45 ms          286
-blocked_aligned_mmul_bench/1536       8.29 ms         8.29 ms           85
+blocked_aligned_mmul_bench/1536       8.29 ms         8.29 ms           85  (783)
 blocked_mmul_bench/512               0.324 ms        0.324 ms         2176
 blocked_mmul_bench/1024               2.49 ms         2.49 ms          282
-blocked_mmul_bench/1536               8.42 ms         8.42 ms           83
+blocked_mmul_bench/1536               8.42 ms         8.42 ms           83 
 
 
 WASM
