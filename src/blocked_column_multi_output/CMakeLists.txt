@@ -31,3 +31,14 @@ endif()
 set_target_properties(${TARGET_NAME} PROPERTIES
   RUNTIME_OUTPUT_NAME mmul_bench
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+
+set(TARGET_NAME blocked_column_multi_output_grind)
+add_executable(${TARGET_NAME} grind.cpp)
+target_compile_options(${TARGET_NAME} PRIVATE -O3 -march=native -mtune=native -flto -fuse-linker-plugin)# -mno-avx512f)
+target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20) # Use C++20 standard.
+
+set_target_properties(${TARGET_NAME} PROPERTIES
+  RUNTIME_OUTPUT_NAME grind
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
